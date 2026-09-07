@@ -57,6 +57,7 @@ menu = st.sidebar.selectbox(
     ],
 )
 
+
 # Función lógica para asignar pausas y sistemas energéticos
 def obtener_sistema_pausa(d):
   if d <= 50:
@@ -186,7 +187,7 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       )
 
 # ==========================================
-# SECCIÓN 2: NUEVA CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
+# SECCIÓN 2: CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
 # ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
@@ -218,7 +219,6 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
 
-  # Cálculo automático
   vel_ms = custom_dist / custom_time
   vel_ajustada = vel_ms * (custom_intensidad / 100.0)
   tiempo_ajustado = custom_dist / vel_ajustada
@@ -240,7 +240,6 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
 
-  # Generar tabla fraccionada automática para esta distancia objetivo
   st.subheader("Desglose de Parciales Fraccionados")
   pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400]
   desglose = []
@@ -318,7 +317,7 @@ elif menu == "➕ Registrar Nuevo Atleta":
             )
           st.success(
               f"¡Atleta '{nombre}' registrado con éxito en la base de datos!"
-            )
+          )
           st.rerun()
         except Exception as e:
           st.error(f"Error al guardar en el archivo Excel: {e}")
@@ -331,19 +330,24 @@ elif menu == "➕ Registrar Nuevo Atleta":
 # ==========================================
 # SECCIÓN 4: COMPARATIVA DE ATLETAS
 # ==========================================
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(
-    data=df_atletas,
-    x="Nombre del Atleta",
-    y="Velocidad Media (m/s)",
-    palette="Blues_d",
-    ax=ax,
-)
-ax.set_title(
-    "Velocidad Media Base (m/s) por Atleta", fontsize=14, fontweight="bold"
-)
-ax.set_ylabel("Velocidad Media (m/s)")
-ax.set_xlabel("Atleta")
-plt.xticks(rotation=15)
-st.pyplot(fig)
-plt.close(fig)  
+elif menu == "📈 Comparativa de Atletas":
+  st.header("Módulo Gráfico Comparativo")
+  if df_atletas.empty:
+    st.info("No hay suficientes datos para mostrar gráficos.")
+  else:
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.barplot(
+        data=df_atletas,
+        x="Nombre del Atleta",
+        y="Velocidad Media (m/s)",
+        palette="Blues_d",
+        ax=ax,
+    )
+    ax.set_title(
+        "Velocidad Media Base (m/s) por Atleta", fontsize=14, fontweight="bold"
+    )
+    ax.set_ylabel("Velocidad Media (m/s)")
+    ax.set_xlabel("Atleta")
+    plt.xticks(rotation=15)
+    st.pyplot(fig)
+    plt.close(fig)
