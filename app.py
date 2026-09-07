@@ -331,23 +331,19 @@ elif menu == "➕ Registrar Nuevo Atleta":
 # ==========================================
 # SECCIÓN 4: COMPARATIVA DE ATLETAS
 # ==========================================
-elif menu == "📈 Comparativa de Atletas":
-  st.header("Módulo Gráfico Comparativo")
-  if df_atletas.empty:
-    st.info("No hay suficientes datos para mostrar gráficos.")
-  else:
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.barplot(
-        data=df_atletas,
-        x="Nombre del Atleta",
-        y="Velocidad Media (m/s)",
-        palette="Blues_d",
-        ax=ax,
-    )
-    ax.set_title(
-        "Velocidad Media Base (m/s) por Atleta", fontsize=14, fontweight="bold"
-    )
-    ax.set_ylabel("Velocidad Media (m/s)")
-    ax.set_xlabel("Atleta")
-    plt.xticks(rotation=15)
-    st.pyplot(fig)
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.barplot(
+    data=df_atletas,
+    x="Nombre del Atleta",
+    y="Velocidad Media (m/s)",
+    palette="Blues_d",
+    ax=ax,
+)
+ax.set_title(
+    "Velocidad Media Base (m/s) por Atleta", fontsize=14, fontweight="bold"
+)
+ax.set_ylabel("Velocidad Media (m/s)")
+ax.set_xlabel("Atleta")
+plt.xticks(rotation=15)
+st.pyplot(fig)
+plt.close(fig)  # <--- Añadir esta línea evita conflictos de DOM en la nube
