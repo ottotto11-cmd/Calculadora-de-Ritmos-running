@@ -346,4 +346,4 @@ ax.set_ylabel("Velocidad Media (m/s)")
 ax.set_xlabel("Atleta")
 plt.xticks(rotation=15)
 st.pyplot(fig)
-plt.close(fig)  # <--- Añadir esta línea evita conflictos de DOM en la nube
+plt.close(fig)  
