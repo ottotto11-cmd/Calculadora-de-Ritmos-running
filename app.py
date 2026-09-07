@@ -1,10 +1,7 @@
 import os
-import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
 import streamlit as st
 
-# Configuración de la página
 st.set_page_config(
     page_title="App de Control de Ritmos e Intensidades",
     page_icon="🏃‍♂️",
@@ -14,7 +11,6 @@ st.set_page_config(
 file_path = "Calculadora_Ritmos_Atletas_BD.xlsx"
 
 
-# Función para cargar datos de atletas
 @st.cache_data(ttl=1)
 def load_data():
   if os.path.exists(file_path):
@@ -46,7 +42,6 @@ st.markdown(
     " energéticos."
 )
 
-# Menú de navegación lateral
 menu = st.sidebar.selectbox(
     "Menú de Navegación",
     [
@@ -58,7 +53,6 @@ menu = st.sidebar.selectbox(
 )
 
 
-# Función lógica para asignar pausas y sistemas energéticos
 def obtener_sistema_pausa(d):
   if d <= 50:
     return "P.A.A.L (0-6s)", "2.5-3 min", "6-8 min"
@@ -74,17 +68,12 @@ def obtener_sistema_pausa(d):
     return "C.A.E (>2 min)", "1.5-2.5 min", "8-10 min"
 
 
-# ==========================================
-# SECCIÓN 1: PERFIL Y CALCULADORA DE RITMOS
-# ==========================================
 if menu == "📊 Perfil y Calculadora de Ritmos":
   st.header("Perfil de Entrenamiento Personalizado por Atleta")
-
   if df_atletas.empty:
     st.warning("No hay atletas registrados.")
   else:
     col1, col2 = st.columns([1, 2])
-
     with col1:
       atleta_seleccionado = st.selectbox(
           "Seleccione al Atleta", df_atletas["Nombre del Atleta"].unique()
@@ -92,7 +81,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       datos_atleta = df_atletas[
           df_atletas["Nombre del Atleta"] == atleta_seleccionado
       ].iloc[0]
-
       st.markdown("---")
       st.subheader("📋 Datos Base")
       st.write(f"**Categoría:** {datos_atleta['Categoría']}")
@@ -101,17 +89,14 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       st.write(
           f"**Marca Objetivo:** {datos_atleta['Marca Objetivo (s)']} segundos"
       )
-
       st.markdown("---")
       intensidad = st.slider(
           "Porcentaje de Intensidad (%)", 70, 110, 100, 5
       )
-
     with col2:
       st.subheader(
           f"Tabla de Ritmos y Pausas ({intensidad}% de la Marca Objetivo)"
       )
-
       base_dist_str = str(datos_atleta["Prueba Base"]).lower()
       base_dist = (
           float(base_dist_str.replace("km", "")) * 1000
@@ -121,7 +106,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       base_marca = float(datos_atleta["Marca Objetivo (s)"])
       velocidad_base = base_dist / base_marca
       velocidad_ajustada = velocidad_base * (intensidad / 100.0)
-
       distancias = [
           10,
           20,
@@ -152,7 +136,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           3000,
           5000,
       ]
-
       tabla_resultados = []
       for d in distancias:
         if d <= base_dist * 2.5:
@@ -161,7 +144,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           t_50m = 50 / velocidad_ajustada
           t_100m = 100 / velocidad_ajustada
           sistema, pausa_micro, pausa_macro = obtener_sistema_pausa(d)
-
           tabla_resultados.append({
               "Distancia (m)": d,
               "Tiempo (s)": round(tiempo_obj, 2),
@@ -172,10 +154,8 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
               "Pausa Micro": pausa_micro,
               "Sistema Energético": sistema,
           })
-
       df_resultado = pd.DataFrame(tabla_resultados)
       st.dataframe(df_resultado, use_container_width=True, height=400)
-
       csv = df_resultado.to_csv(index=False).encode("utf-8")
       st.download_button(
           label="📥 Descargar Plan de Entrenamiento (CSV)",
@@ -186,9 +166,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           mime="text/csv",
       )
 
-# ==========================================
-# SECCIÓN 2: CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
-# ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
@@ -196,7 +173,6 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       " calcular de inmediato la velocidad exacta, los parciales y el sistema"
       " energético."
   )
-
   col_in1, col_in2, col_in3 = st.columns(3)
   with col_in1:
     custom_dist = st.number_input(
@@ -218,14 +194,11 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
     custom_intensidad = st.slider(
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
-
   vel_ms = custom_dist / custom_time
   vel_ajustada = vel_ms * (custom_intensidad / 100.0)
   tiempo_ajustado = custom_dist / vel_ajustada
-
   st.markdown("---")
   st.subheader("📊 Resultados del Cálculo Automático")
-
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Velocidad Resultante", f"{vel_ajustada:.2f} m/s")
   m2.metric("Tiempo Total Ajustado", f"{tiempo_ajustado:.2f} s")
@@ -234,12 +207,10 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       custom_dist
   )
   m4.metric("Sistema Energético", sistema_auto)
-
   st.info(
       f"**Recomendación de Pausas:** Pausa Microciclo: **{pausa_micro_auto}** |"
       f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
-
   st.subheader("Desglose de Parciales Fraccionados")
   pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400]
   desglose = []
@@ -251,16 +222,11 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
           "Tiempo de Paso (s)": round(t_p, 2),
           "Ritmo (s/100m)": round(100 / vel_ajustada, 2),
       })
-
   df_desglose = pd.DataFrame(desglose)
   st.dataframe(df_desglose, use_container_width=True)
 
-# ==========================================
-# SECCIÓN 3: REGISTRAR NUEVO ATLETA
-# ==========================================
 elif menu == "➕ Registrar Nuevo Atleta":
   st.header("Registro de Nuevos Atletas")
-
   with st.form("form_nuevo_atleta"):
     col_a, col_b = st.columns(2)
     with col_a:
@@ -282,9 +248,7 @@ elif menu == "➕ Registrar Nuevo Atleta":
           value=12.0,
           step=0.1,
       )
-
     submit_button = st.form_submit_button(label="💾 Guardar Atleta")
-
     if submit_button:
       if nombre:
         dist_num = (
@@ -294,7 +258,6 @@ elif menu == "➕ Registrar Nuevo Atleta":
         )
         vel_media = dist_num / marca_objetivo
         new_id = int(df_atletas["ID"].max() + 1) if not df_atletas.empty else 1
-
         nuevo_registro = pd.DataFrame([{
             "ID": new_id,
             "Nombre del Atleta": nombre,
@@ -304,7 +267,6 @@ elif menu == "➕ Registrar Nuevo Atleta":
             "Marca Objetivo (s)": marca_objetivo,
             "Velocidad Media (m/s)": round(vel_media, 6),
         }])
-
         df_actualizado = pd.concat(
             [df_atletas, nuevo_registro], ignore_index=True
         )
@@ -323,31 +285,15 @@ elif menu == "➕ Registrar Nuevo Atleta":
           st.error(f"Error al guardar en el archivo Excel: {e}")
       else:
         st.warning("Por favor, ingresa al menos el nombre del atleta.")
-
   st.subheader("Atletas Registrados Actualmente")
   st.dataframe(df_atletas, use_container_width=True)
 
-# ==========================================
-# SECCIÓN 4: COMPARATIVA DE ATLETAS
-# ==========================================
 elif menu == "📈 Comparativa de Atletas":
   st.header("Módulo Gráfico Comparativo")
   if df_atletas.empty:
     st.info("No hay suficientes datos para mostrar gráficos.")
   else:
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.barplot(
-        data=df_atletas,
-        x="Nombre del Atleta",
-        y="Velocidad Media (m/s)",
-        palette="Blues_d",
-        ax=ax,
-    )
-    ax.set_title(
-        "Velocidad Media Base (m/s) por Atleta", fontsize=14, fontweight="bold"
-    )
-    ax.set_ylabel("Velocidad Media (m/s)")
-    ax.set_xlabel("Atleta")
-    plt.xticks(rotation=15)
-    st.pyplot(fig)
-    plt.close(fig)
+    df_chart = df_atletas.set_index("Nombre del Atleta")[
+        "Velocidad Media (m/s)"
+    ]
+    st.bar_chart(df_chart)
