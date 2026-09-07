@@ -48,6 +48,7 @@ menu = st.sidebar.selectbox(
         "📊 Perfil y Calculadora de Ritmos",
         "⚡ Calculadora por Distancia y Tiempo Objetivo",
         "➕ Registrar Nuevo Atleta",
+        "✏️ Editar o Eliminar Atletas",
         "📈 Comparativa de Atletas",
     ],
 )
@@ -68,6 +69,9 @@ def obtener_sistema_pausa(d):
     return "C.A.E (>2 min)", "1.5-2.5 min", "8-10 min"
 
 
+# ==========================================
+# 1. PERFIL Y CALCULADORA DE RITMOS
+# ==========================================
 if menu == "📊 Perfil y Calculadora de Ritmos":
   st.header("Perfil de Entrenamiento Personalizado por Atleta")
   if df_atletas.empty:
@@ -166,6 +170,9 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           mime="text/csv",
       )
 
+# ==========================================
+# 2. CALCULADORA POR DISTANCIA Y TIEMPO
+# ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
@@ -225,6 +232,9 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   df_desglose = pd.DataFrame(desglose)
   st.dataframe(df_desglose, use_container_width=True)
 
+# ==========================================
+# 3. REGISTRAR NUEVO ATLETA
+# ==========================================
 elif menu == "➕ Registrar Nuevo Atleta":
   st.header("Registro de Nuevos Atletas")
   with st.form("form_nuevo_atleta"):
@@ -288,6 +298,156 @@ elif menu == "➕ Registrar Nuevo Atleta":
   st.subheader("Atletas Registrados Actualmente")
   st.dataframe(df_atletas, use_container_width=True)
 
+# ==========================================
+# 4. EDITAR O ELIMINAR ATLETAS
+# ==========================================
+elif menu == "✏️ Editar o Eliminar Atletas":
+  st.header("Gestión y Edición de Atletas Registrados")
+  if df_atletas.empty:
+    st.info("No hay atletas en la base de datos para editar o eliminar.")
+  else:
+    atleta_a_gestionar = st.selectbox(
+        "Selecciona el Atleta que deseas Modificar o Eliminar",
+        df_atletas["Nombre del Atleta"].unique(),
+    )
+    atleta_row = df_atletas[
+        df_atletas["Nombre del Atleta"] == atleta_a_gestionar
+    ].iloc[0]
+
+    col_ed1, col_ed2 = st.columns(2)
+    with col_ed1:
+      st.subheader("📝 Editar Datos del Atleta")
+      with st.form("form_editar_atleta"):
+        nuevo_nombre = st.text_input(
+            "Nombre del Atleta", value=str(atleta_row["Nombre del Atleta"])
+        )
+
+        categorias_lista = [
+            "Sub-16",
+            "Sub-18",
+            "Sub-20",
+            "Junior",
+            "Senior",
+            "Máster",
+        ]
+        cat_idx = (
+            categorias_lista.index(atleta_row["Categoría"])
+            if atleta_row["Categoría"] in categorias_lista
+            else 0
+        )
+        nueva_categoria = st.selectbox(
+            "Categoría", categorias_lista, index=cat_idx
+        )
+
+        especialidades_lista = [
+            "Velocista",
+            "Medio Fondo",
+            "Fondo",
+            "Vallas",
+            "Saltos",
+        ]
+        esp_idx = (
+            especialidades_lista.index(atleta_row["Especialidad"])
+            if atleta_row["Especialidad"] in especialidades_lista
+            else 0
+        )
+        nueva_especialidad = st.selectbox(
+            "Especialidad", especialidades_lista, index=esp_idx
+        )
+
+        pruebas_lista = ["60m", "100m", "200m", "400m", "800m", "1500m"]
+        p_idx = (
+            pruebas_lista.index(atleta_row["Prueba Base"])
+            if atleta_row["Prueba Base"] in pruebas_lista
+            else 1
+        )
+        nueva_prueba = st.selectbox("Prueba Base", pruebas_lista, index=p_idx)
+
+        nueva_marca = st.number_input(
+            "Marca Objetivo (s)",
+            min_value=5.0,
+            max_value=600.0,
+            value=float(atleta_row["Marca Objetivo (s)"]),
+            step=0.1,
+        )
+
+        btn_actualizar = st.form_submit_button(
+            label="💾 Guardar Cambios / Actualizar"
+        )
+
+        if btn_actualizar:
+          # Recalcular velocidad media
+          d_num = (
+              float(nueva_prueba.replace("m", ""))
+              if "m" in nueva_prueba
+              else 100.0
+          )
+          nueva_vel = d_num / nueva_marca
+
+          # Actualizar el registro en el DataFrame
+          df_atletas.loc[
+              df_atletas["Nombre del Atleta"] == atleta_a_gestionar,
+              [
+                  "Nombre del Atleta",
+                  "Categoría",
+                  "Especialidad",
+                  "Prueba Base",
+                  "Marca Objetivo (s)",
+                  "Velocidad Media (m/s)",
+              ],
+          ] = [
+              nuevo_nombre,
+              nueva_categoria,
+              nueva_especialidad,
+              nueva_prueba,
+              nueva_marca,
+              round(nueva_vel, 6),
+          ]
+
+          try:
+            with pd.ExcelWriter(
+                file_path, engine="openpyxl", mode="a", if_sheet_exists="replace"
+            ) as writer:
+              df_atletas.to_excel(
+                  writer, sheet_name="Registro Atletas", index=False
+              )
+            st.success(f"¡Atleta '{nuevo_nombre}' actualizado correctamente!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Error al actualizar la base de datos: {e}")
+
+    with col_ed2:
+      st.subheader("🗑️ Eliminar Atleta")
+      st.warning(
+          f"¿Deseas eliminar permanentemente a **{atleta_a_gestionar}** de la"
+          " base de datos?"
+      )
+      if st.button(f"❌ Borrar a {atleta_a_gestionar}", type="primary"):
+        df_atletas_filtrado = df_atletas[
+            df_atletas["Nombre del Atleta"] != atleta_a_gestionar
+        ]
+        try:
+          with pd.ExcelWriter(
+              file_path, engine="openpyxl", mode="a", if_sheet_exists="replace"
+          ) as writer:
+            df_atletas_filtrado.to_excel(
+                writer, sheet_name="Registro Atletas", index=False
+            )
+          st.success(
+              f"Atleta '{atleta_a_gestionar}' eliminado con éxito de la base de"
+              " datos."
+          )
+          st.rerun()
+        except Exception as e:
+          st.error(f"Error al eliminar al atleta: {e}")
+
+    st.markdown("---")
+    st.subheader("Base de Datos Actualizada de Atletas")
+    st.dataframe(df_atletas, use_container_width=True)
+
+# ==========================================
+# 5. COMPARATIVA DE ATLETAS
+# ==========================================
 elif menu == "📈 Comparativa de Atletas":
   st.header("Módulo Gráfico Comparativo")
   if df_atletas.empty:
