@@ -171,14 +171,14 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       )
 
 # ==========================================
-# 2. CALCULADORA POR DISTANCIA Y TIEMPO
+# 2. CALCULADORA POR DISTANCIA Y TIEMPO (HASTA 1000M)
 # ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
-      "Ingresa una distancia específica y el tiempo objetivo deseado para"
-      " calcular de inmediato la velocidad exacta, los parciales y el sistema"
-      " energético."
+      "Ingresa una distancia específica (hasta 1,000m o más) y el tiempo"
+      " objetivo deseado para calcular de inmediato la velocidad exacta, los"
+      " parciales y el sistema energético."
   )
   col_in1, col_in2, col_in3 = st.columns(3)
   with col_in1:
@@ -186,7 +186,7 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Distancia Objetivo (metros)",
         min_value=10.0,
         max_value=10000.0,
-        value=400.0,
+        value=800.0,
         step=10.0,
     )
   with col_in2:
@@ -194,7 +194,7 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Tiempo Objetivo (segundos)",
         min_value=1.0,
         max_value=3600.0,
-        value=52.0,
+        value=120.0,
         step=0.1,
     )
   with col_in3:
@@ -218,8 +218,34 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       f"**Recomendación de Pausas:** Pausa Microciclo: **{pausa_micro_auto}** |"
       f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
-  st.subheader("Desglose de Parciales Fraccionados")
-  pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400]
+  st.subheader("Desglose de Parciales Fraccionados (Hasta 1,000m)")
+
+  # Lista de pasos ampliada que incluye distancias de medio fondo hasta 1,000m
+  pasos = [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100,
+      150,
+      200,
+      250,
+      300,
+      350,
+      400,
+      450,
+      500,
+      600,
+      700,
+      800,
+      900,
+      1000,
+  ]
   desglose = []
   for p in pasos:
     if p <= custom_dist:
@@ -376,7 +402,6 @@ elif menu == "✏️ Editar o Eliminar Atletas":
         )
 
         if btn_actualizar:
-          # Recalcular velocidad media
           d_num = (
               float(nueva_prueba.replace("m", ""))
               if "m" in nueva_prueba
@@ -384,7 +409,6 @@ elif menu == "✏️ Editar o Eliminar Atletas":
           )
           nueva_vel = d_num / nueva_marca
 
-          # Actualizar el registro en el DataFrame
           df_atletas.loc[
               df_atletas["Nombre del Atleta"] == atleta_a_gestionar,
               [
@@ -410,7 +434,7 @@ elif menu == "✏️ Editar o Eliminar Atletas":
             ) as writer:
               df_atletas.to_excel(
                   writer, sheet_name="Registro Atletas", index=False
-              )
+            )
             st.success(f"¡Atleta '{nuevo_nombre}' actualizado correctamente!")
             st.rerun()
           except Exception as e:
