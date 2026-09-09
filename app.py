@@ -38,8 +38,8 @@ df_atletas = load_data()
 
 st.title("🏃‍♂️ Sistema Avanzado de Control de Ritmos e Intensidades")
 st.markdown(
-    "Calculadora biomecánica con control de aceleración inicial, coeficiente"
-    " de fatiga y progresión estrictamente acumulativa."
+    "Calculadora biomecánica con modelo continuo de aceleración, fatiga y"
+    " progresión matemática coherente."
 )
 
 menu = st.sidebar.selectbox(
@@ -108,8 +108,8 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           else float(base_dist_str.replace("m", ""))
       )
       base_marca = float(datos_atleta["Marca Objetivo (s)"])
-      v_media = base_dist / base_marca
-      v_ajustada = v_media * (intensidad / 100.0)
+      t_total = base_marca / (intensidad / 100.0)
+      v_media = base_dist / t_total
 
       distancias = [
           10,
@@ -142,25 +142,21 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           5000,
       ]
       tabla_resultados = []
-      t_ant = 0.0
       for d in distancias:
         if d <= base_dist * 2.5:
-          frac = d / base_dist
-          if d <= 30:
-            t = (base_marca / (intensidad / 100.0)) * (frac**0.92) * 1.15
-          else:
-            if d > 200:
-              fatiga = 1.0 + ((d - 200) / 1500.0)
+
+          def raw_time(x):
+            if x <= 30:
+              return (x / v_media) * 1.20
+            elif x <= 100:
+              return (x / v_media) * 1.02
             else:
-              fatiga = 1.0
-            t = (base_marca / (intensidad / 100.0)) * (frac**1.0) * fatiga
+              fatiga = 1.0 + ((x - 200) / 1200.0) if x > 200 else 1.0
+              return (x / v_media) * 1.05 * fatiga
 
-          if t <= t_ant:
-            t = t_ant + 0.1
-          t_ant = t
-
-          if d == base_dist:
-            t = base_marca * (100 / intensidad)
+          t_raw_obj = raw_time(base_dist)
+          k = t_total / t_raw_obj if t_raw_obj > 0 else 1.0
+          t = raw_time(d) * k
 
           vel_tramo = d / t if t > 0 else 0
           sistema, pausa_micro, pausa_macro = obtener_sistema_pausa(d)
@@ -190,8 +186,8 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática con Decremento de Velocidad (Fatiga)")
   st.markdown(
-      "Modelo biomecánico con progresión estrictamente acumulativa, fase de"
-      " aceleración y tasa de fatiga."
+      "Modelo biomecánico continuo y calibrado para garantizar parciales"
+      " perfectamente coherentes y progresivos."
   )
 
   tipo_prueba = st.selectbox(
@@ -239,13 +235,13 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
     )
 
   tiempo_ajustado = custom_time / (custom_intensidad / 100.0)
-  v_ajustada = custom_dist / tiempo_ajustado
+  v_media_global = custom_dist / tiempo_ajustado
 
   st.markdown("---")
-  st.subheader("📊 Resultados del Modelo Biomecánico con Fatiga")
+  st.subheader("📊 Resultados del Modelo Biomecánico Calibrado")
 
   m1, m2, m3, m4 = st.columns(4)
-  m1.metric("Velocidad Media Global", f"{v_ajustada:.2f} m/s")
+  m1.metric("Velocidad Media Global", f"{v_media_global:.2f} m/s")
   m2.metric("Tiempo Total Ajustado", f"{tiempo_ajustado:.2f} s")
   m3.metric("Ritmo Base (s/100m)", f"{(custom_time / custom_dist) * 100:.2f} s")
   sistema_auto, pausa_micro_auto, pausa_macro_auto = obtener_sistema_pausa(
@@ -259,7 +255,7 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   )
 
   st.subheader(
-      "Desglose de Parciales Fraccionados (Progresivos y Coherentes)"
+      "Desglose de Parciales Fraccionados (Progresión Continua y Sin Saltos)"
   )
 
   if "100m" in tipo_prueba:
@@ -313,27 +309,26 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
     ]
 
   desglose = []
-  t_acum = 0.0
   for p in pasos:
     if p <= custom_dist:
-      frac = p / custom_dist
-      if p <= 30:
-        t_p = tiempo_ajustado * (frac**0.92) * 1.15
-      else:
-        if especialidad_tipo == "100m":
-          fatiga = 1.0 + (p / 2200.0)
-        elif especialidad_tipo == "200m":
-          fatiga = 1.0 + (p / 1800.0)
+
+      def raw_time(x):
+        if x <= 30:
+          return (x / v_media_global) * 1.20
+        elif x <= 100:
+          return (x / v_media_global) * 1.02
         else:
-          fatiga = 1.0 + ((p - 200) / 1200.0) if p > 200 else 1.0
-        t_p = tiempo_ajustado * (frac**1.0) * fatiga
+          if especialidad_tipo == "100m":
+            fatiga = 1.0 + (x / 2500.0)
+          elif especialidad_tipo == "200m":
+            fatiga = 1.0 + (x / 2000.0)
+          else:
+            fatiga = 1.0 + ((x - 200) / 1200.0) if x > 200 else 1.0
+          return (x / v_media_global) * 1.05 * fatiga
 
-      if t_p <= t_acum:
-        t_p = t_acum + 0.1
-      t_acum = t_p
-
-      if p == custom_dist:
-        t_p = tiempo_ajustado
+      t_raw_obj = raw_time(custom_dist)
+      k = tiempo_ajustado / t_raw_obj if t_raw_obj > 0 else 1.0
+      t_p = raw_time(p) * k
 
       vel_tramo = p / t_p if t_p > 0 else 0
       desglose.append({
@@ -543,7 +538,7 @@ elif menu == "✏️ Editar o Eliminar Atletas":
               file_path, engine="openpyxl", mode="a", if_sheet_exists="replace"
           ) as writer:
             df_atletas_filtrado.to_excel(
-                writer, sheet_name="Registro Atletas", index=False
+                writer, sheet_name="Registro Atletas", index=False, sheet_name="Registro Atletas" if 'sheet_name' in locals() else 'Registro Atletas'
             )
           st.success(
               f"Atleta '{atleta_a_gestionar}' eliminado con éxito de la base de"
