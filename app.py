@@ -538,7 +538,7 @@ elif menu == "✏️ Editar o Eliminar Atletas":
               file_path, engine="openpyxl", mode="a", if_sheet_exists="replace"
           ) as writer:
             df_atletas_filtrado.to_excel(
-                writer, sheet_name="Registro Atletas", index=False, sheet_name="Registro Atletas" if 'sheet_name' in locals() else 'Registro Atletas'
+                writer, sheet_name="Registro Atletas", index=False
             )
           st.success(
               f"Atleta '{atleta_a_gestionar}' eliminado con éxito de la base de"
