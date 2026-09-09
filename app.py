@@ -38,8 +38,8 @@ df_atletas = load_data()
 
 st.title("🏃‍♂️ Sistema Avanzado de Control de Ritmos e Intensidades")
 st.markdown(
-    "Calculadora automática de ritmos, parciales, intensidades y sistemas"
-    " energéticos."
+    "Calculadora biomecánica con control de aceleración inicial y coeficiente"
+    " de decremento de velocidad por fatiga."
 )
 
 menu = st.sidebar.selectbox(
@@ -150,7 +150,7 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           elif d <= 100:
             t = (d / v_ajustada) * 1.03
           else:
-            factor_fatiga = 1.0 + (d / 1500.0)
+            factor_fatiga = 1.0 + (d / 1400.0)
             t = (d / v_ajustada) * factor_fatiga
 
           if d == base_dist:
@@ -182,10 +182,10 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
 # 2. CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
 # ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
-  st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
+  st.header("Calculadora Automática con Decremento de Velocidad (Fatiga)")
   st.markdown(
-      "Selecciona la prueba base del atleta para ajustar los límites de"
-      " control y cálculo de parciales coherentes."
+      "Calculadora avanzada que modela la **fase de aceleración inicial** y el"
+      " **coeficiente de fatiga/deceleración** por tramos."
   )
 
   tipo_prueba = st.selectbox(
@@ -232,16 +232,19 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
 
-  # Velocidad ajustada en base a la distancia y tiempo objetivo ingresados
+  # Velocidad global ajustada
   v_base = custom_dist / custom_time
   v_ajustada = v_base * (custom_intensidad / 100.0)
 
   st.markdown("---")
-  st.subheader("📊 Resultados del Cálculo Automático")
+  st.subheader("📊 Resultados del Modelo Biomecánico con Fatiga")
 
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Velocidad Media Global", f"{v_ajustada:.2f} m/s")
-  m2.metric("Tiempo Total Ajustado", f"{custom_time / (custom_intensidad/100.0):.2f} s")
+  m2.metric(
+      "Tiempo Total Ajustado",
+      f"{custom_time / (custom_intensidad/100.0):.2f} s",
+  )
   m3.metric("Ritmo Base (s/100m)", f"{(custom_time / custom_dist) * 100:.2f} s")
   sistema_auto, pausa_micro_auto, pausa_macro_auto = obtener_sistema_pausa(
       custom_dist
@@ -253,7 +256,9 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
 
-  st.subheader("Desglose de Parciales Fraccionados (Progresivos y Coherentes)")
+  st.subheader(
+      "Desglose de Parciales Fraccionados (Con Coeficiente de Decremento)"
+  )
 
   if "100m" in tipo_prueba:
     pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350]
@@ -306,14 +311,35 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
     ]
 
   desglose = []
-  for p in pasos:
+  tiempo_acumulado = 0.0
+
+  for i, p in enumerate(pasos):
     if p <= custom_dist:
-      # Cálculo proporcional y acumulativo exacto basado en la velocidad global
+      # Asignación de factor de fatiga / decremento según distancia y especialidad
+      if p <= 30:
+        # Fase de aceleración (más lento por inercia)
+        factor_fisiologico = 1.22 - (p / 130.0)
+      elif p <= 100:
+        # Velocidad lanzada óptima
+        factor_fisiologico = 1.02
+      else:
+        # Coeficiente de decremento por fatiga acumulada según la prueba
+        if especialidad_tipo == "100m":
+          factor_fisiologico = 1.0 + (p / 1800.0)
+        elif especialidad_tipo == "200m":
+          factor_fisiologico = 1.0 + (p / 1500.0)
+        else:  # 400m / 800m
+          factor_fisiologico = 1.0 + (p / 1000.0)
+
+      # Cálculo estricto del tiempo parcial con decremento de velocidad
       if p == custom_dist:
         t_p = custom_time / (custom_intensidad / 100.0)
       else:
-        # Interpolación proporcional estricta para mantener curva ascendente coherente
-        t_p = (custom_time / (custom_intensidad / 100.0)) * (p / custom_dist)
+        t_p = (
+            (custom_time / (custom_intensidad / 100.0))
+            * (p / custom_dist)
+            * factor_fisiologico
+        )
 
       vel_tramo = p / t_p if t_p > 0 else 0
       desglose.append({
