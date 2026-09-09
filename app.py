@@ -176,36 +176,41 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
-      "Selecciona la prueba de referencia del atleta para adaptar los límites"
-      " de control y cálculo de ritmos y parciales."
+      "Selecciona la prueba base del atleta para ajustar los límites de"
+      " control y cálculo de parciales."
   )
 
-  # Selector de categoría de prueba para aplicar la regla de los 350m o 1000m
+  # Selector de la prueba base del atleta con los límites específicos
   tipo_prueba = st.selectbox(
-      "Selecciona la Especialidad / Prueba Base del Atleta:",
-      ["Atleta de 100m (Límite de control: 350m)", "Atleta de 200m a 800m (Límite de control: 1,000m)"]
+      "Selecciona la Prueba de Referencia:",
+      [
+          "Atleta de 100m (Límite: 350m)",
+          "Atleta de 200m (Límite: 500m)",
+          "Atleta de 400m u 800m (Límite: 1,000m)",
+      ],
   )
+
+  # Asignar límite de distancia máxima según la selección
+  if "100m" in tipo_prueba:
+    max_limite = 350.0
+    val_defecto = 100.0
+  elif "200m" in tipo_prueba:
+    max_limite = 500.0
+    val_defecto = 200.0
+  else:
+    max_limite = 1000.0
+    val_defecto = 400.0
 
   col_in1, col_in2, col_in3 = st.columns(3)
   with col_in1:
-    if "100m" in tipo_prueba:
-      custom_dist = st.number_input(
-          "Distancia Objetivo (metros)",
-          min_value=10.0,
-          max_value=350.0,
-          value=100.0,
-          step=10.0,
-          help="Para atletas de 100m, la distancia máxima recomendada es de 350m.",
-      )
-    else:
-      custom_dist = st.number_input(
-          "Distancia Objetivo (metros)",
-          min_value=10.0,
-          max_value=1000.0,
-          value=400.0,
-          step=10.0,
-          help="Para atletas de 200m a 800m, calcula hasta los 1,000m.",
-      )
+    custom_dist = st.number_input(
+        "Distancia Objetivo (metros)",
+        min_value=10.0,
+        max_value=max_limite,
+        value=val_defecto,
+        step=10.0,
+        help=f"Límite máximo configurado para esta prueba: {int(max_limite)}m.",
+    )
   with col_in2:
     custom_time = st.number_input(
         "Tiempo Objetivo (segundos)",
@@ -242,9 +247,30 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
 
   st.subheader("Desglose de Parciales Fraccionados")
 
-  # Definir matriz de pasos según la selección del entrenador
+  # Definir matriz de pasos según la prueba seleccionada
   if "100m" in tipo_prueba:
     pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350]
+  elif "200m" in tipo_prueba:
+    pasos = [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        150,
+        200,
+        250,
+        300,
+        350,
+        400,
+        450,
+        500,
+    ]
   else:
     pasos = [
         10,
