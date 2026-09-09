@@ -38,8 +38,8 @@ df_atletas = load_data()
 
 st.title("🏃‍♂️ Sistema Avanzado de Control de Ritmos e Intensidades")
 st.markdown(
-    "Calculadora biomecánica con control de aceleración inicial y coeficiente"
-    " de decremento de velocidad por fatiga."
+    "Calculadora biomecánica con control de aceleración inicial, coeficiente"
+    " de fatiga y progresión estrictamente acumulativa."
 )
 
 menu = st.sidebar.selectbox(
@@ -142,16 +142,22 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
           5000,
       ]
       tabla_resultados = []
+      t_ant = 0.0
       for d in distancias:
         if d <= base_dist * 2.5:
+          frac = d / base_dist
           if d <= 30:
-            factor_acel = 1.25 - (d / 120.0)
-            t = (d / v_ajustada) * factor_acel
-          elif d <= 100:
-            t = (d / v_ajustada) * 1.03
+            t = (base_marca / (intensidad / 100.0)) * (frac**0.92) * 1.15
           else:
-            factor_fatiga = 1.0 + (d / 1400.0)
-            t = (d / v_ajustada) * factor_fatiga
+            if d > 200:
+              fatiga = 1.0 + ((d - 200) / 1500.0)
+            else:
+              fatiga = 1.0
+            t = (base_marca / (intensidad / 100.0)) * (frac**1.0) * fatiga
+
+          if t <= t_ant:
+            t = t_ant + 0.1
+          t_ant = t
 
           if d == base_dist:
             t = base_marca * (100 / intensidad)
@@ -184,8 +190,8 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática con Decremento de Velocidad (Fatiga)")
   st.markdown(
-      "Calculadora avanzada que modela la **fase de aceleración inicial** y el"
-      " **coeficiente de fatiga/deceleración** por tramos."
+      "Modelo biomecánico con progresión estrictamente acumulativa, fase de"
+      " aceleración y tasa de fatiga."
   )
 
   tipo_prueba = st.selectbox(
@@ -232,19 +238,15 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
 
-  # Velocidad global ajustada
-  v_base = custom_dist / custom_time
-  v_ajustada = v_base * (custom_intensidad / 100.0)
+  tiempo_ajustado = custom_time / (custom_intensidad / 100.0)
+  v_ajustada = custom_dist / tiempo_ajustado
 
   st.markdown("---")
   st.subheader("📊 Resultados del Modelo Biomecánico con Fatiga")
 
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Velocidad Media Global", f"{v_ajustada:.2f} m/s")
-  m2.metric(
-      "Tiempo Total Ajustado",
-      f"{custom_time / (custom_intensidad/100.0):.2f} s",
-  )
+  m2.metric("Tiempo Total Ajustado", f"{tiempo_ajustado:.2f} s")
   m3.metric("Ritmo Base (s/100m)", f"{(custom_time / custom_dist) * 100:.2f} s")
   sistema_auto, pausa_micro_auto, pausa_macro_auto = obtener_sistema_pausa(
       custom_dist
@@ -257,7 +259,7 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   )
 
   st.subheader(
-      "Desglose de Parciales Fraccionados (Con Coeficiente de Decremento)"
+      "Desglose de Parciales Fraccionados (Progresivos y Coherentes)"
   )
 
   if "100m" in tipo_prueba:
@@ -311,35 +313,27 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
     ]
 
   desglose = []
-  tiempo_acumulado = 0.0
-
-  for i, p in enumerate(pasos):
+  t_acum = 0.0
+  for p in pasos:
     if p <= custom_dist:
-      # Asignación de factor de fatiga / decremento según distancia y especialidad
+      frac = p / custom_dist
       if p <= 30:
-        # Fase de aceleración (más lento por inercia)
-        factor_fisiologico = 1.22 - (p / 130.0)
-      elif p <= 100:
-        # Velocidad lanzada óptima
-        factor_fisiologico = 1.02
+        t_p = tiempo_ajustado * (frac**0.92) * 1.15
       else:
-        # Coeficiente de decremento por fatiga acumulada según la prueba
         if especialidad_tipo == "100m":
-          factor_fisiologico = 1.0 + (p / 1800.0)
+          fatiga = 1.0 + (p / 2200.0)
         elif especialidad_tipo == "200m":
-          factor_fisiologico = 1.0 + (p / 1500.0)
-        else:  # 400m / 800m
-          factor_fisiologico = 1.0 + (p / 1000.0)
+          fatiga = 1.0 + (p / 1800.0)
+        else:
+          fatiga = 1.0 + ((p - 200) / 1200.0) if p > 200 else 1.0
+        t_p = tiempo_ajustado * (frac**1.0) * fatiga
 
-      # Cálculo estricto del tiempo parcial con decremento de velocidad
+      if t_p <= t_acum:
+        t_p = t_acum + 0.1
+      t_acum = t_p
+
       if p == custom_dist:
-        t_p = custom_time / (custom_intensidad / 100.0)
-      else:
-        t_p = (
-            (custom_time / (custom_intensidad / 100.0))
-            * (p / custom_dist)
-            * factor_fisiologico
-        )
+        t_p = tiempo_ajustado
 
       vel_tramo = p / t_p if t_p > 0 else 0
       desglose.append({
