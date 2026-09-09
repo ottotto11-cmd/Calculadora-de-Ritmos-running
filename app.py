@@ -171,41 +171,61 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       )
 
 # ==========================================
-# 2. CALCULADORA POR DISTANCIA Y TIEMPO (HASTA 1000M)
+# 2. CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
 # ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
-      "Ingresa una distancia específica (hasta 1,000m o más) y el tiempo"
-      " objetivo deseado para calcular de inmediato la velocidad exacta, los"
-      " parciales y el sistema energético."
+      "Selecciona la prueba de referencia del atleta para adaptar los límites"
+      " de control y cálculo de ritmos y parciales."
   )
+
+  # Selector de categoría de prueba para aplicar la regla de los 350m o 1000m
+  tipo_prueba = st.selectbox(
+      "Selecciona la Especialidad / Prueba Base del Atleta:",
+      ["Atleta de 100m (Límite de control: 350m)", "Atleta de 200m a 800m (Límite de control: 1,000m)"]
+  )
+
   col_in1, col_in2, col_in3 = st.columns(3)
   with col_in1:
-    custom_dist = st.number_input(
-        "Distancia Objetivo (metros)",
-        min_value=10.0,
-        max_value=10000.0,
-        value=800.0,
-        step=10.0,
-    )
+    if "100m" in tipo_prueba:
+      custom_dist = st.number_input(
+          "Distancia Objetivo (metros)",
+          min_value=10.0,
+          max_value=350.0,
+          value=100.0,
+          step=10.0,
+          help="Para atletas de 100m, la distancia máxima recomendada es de 350m.",
+      )
+    else:
+      custom_dist = st.number_input(
+          "Distancia Objetivo (metros)",
+          min_value=10.0,
+          max_value=1000.0,
+          value=400.0,
+          step=10.0,
+          help="Para atletas de 200m a 800m, calcula hasta los 1,000m.",
+      )
   with col_in2:
     custom_time = st.number_input(
         "Tiempo Objetivo (segundos)",
         min_value=1.0,
         max_value=3600.0,
-        value=120.0,
+        value=52.0,
         step=0.1,
     )
   with col_in3:
     custom_intensidad = st.slider(
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
+
   vel_ms = custom_dist / custom_time
   vel_ajustada = vel_ms * (custom_intensidad / 100.0)
   tiempo_ajustado = custom_dist / vel_ajustada
+
   st.markdown("---")
   st.subheader("📊 Resultados del Cálculo Automático")
+
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Velocidad Resultante", f"{vel_ajustada:.2f} m/s")
   m2.metric("Tiempo Total Ajustado", f"{tiempo_ajustado:.2f} s")
@@ -214,38 +234,44 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
       custom_dist
   )
   m4.metric("Sistema Energético", sistema_auto)
+
   st.info(
       f"**Recomendación de Pausas:** Pausa Microciclo: **{pausa_micro_auto}** |"
       f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
-  st.subheader("Desglose de Parciales Fraccionados (Hasta 1,000m)")
 
-  # Lista de pasos ampliada que incluye distancias de medio fondo hasta 1,000m
-  pasos = [
-      10,
-      20,
-      30,
-      40,
-      50,
-      60,
-      70,
-      80,
-      90,
-      100,
-      150,
-      200,
-      250,
-      300,
-      350,
-      400,
-      450,
-      500,
-      600,
-      700,
-      800,
-      900,
-      1000,
-  ]
+  st.subheader("Desglose de Parciales Fraccionados")
+
+  # Definir matriz de pasos según la selección del entrenador
+  if "100m" in tipo_prueba:
+    pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350]
+  else:
+    pasos = [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        150,
+        200,
+        250,
+        300,
+        350,
+        400,
+        450,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000,
+    ]
+
   desglose = []
   for p in pasos:
     if p <= custom_dist:
@@ -255,6 +281,7 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
           "Tiempo de Paso (s)": round(t_p, 2),
           "Ritmo (s/100m)": round(100 / vel_ajustada, 2),
       })
+
   df_desglose = pd.DataFrame(desglose)
   st.dataframe(df_desglose, use_container_width=True)
 
@@ -434,7 +461,7 @@ elif menu == "✏️ Editar o Eliminar Atletas":
             ) as writer:
               df_atletas.to_excel(
                   writer, sheet_name="Registro Atletas", index=False
-            )
+              )
             st.success(f"¡Atleta '{nuevo_nombre}' actualizado correctamente!")
             st.rerun()
           except Exception as e:
