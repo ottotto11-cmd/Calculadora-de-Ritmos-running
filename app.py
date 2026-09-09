@@ -38,8 +38,8 @@ df_atletas = load_data()
 
 st.title("🏃‍♂️ Sistema Avanzado de Control de Ritmos e Intensidades")
 st.markdown(
-    "Modelo biomecánico con control de aceleración inicial, tasas de fatiga y"
-    " sistemas energéticos."
+    "Calculadora automática de ritmos, parciales, intensidades y sistemas"
+    " energéticos."
 )
 
 menu = st.sidebar.selectbox(
@@ -111,7 +111,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       v_media = base_dist / base_marca
       v_ajustada = v_media * (intensidad / 100.0)
 
-      # Generar modelo biomecánico por tramos
       distancias = [
           10,
           20,
@@ -145,7 +144,6 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
       tabla_resultados = []
       for d in distancias:
         if d <= base_dist * 2.5:
-          # Aplicar factor de aceleración inicial y fatiga acumulada
           if d <= 30:
             factor_acel = 1.25 - (d / 120.0)
             t = (d / v_ajustada) * factor_acel
@@ -184,15 +182,14 @@ if menu == "📊 Perfil y Calculadora de Ritmos":
 # 2. CALCULADORA POR DISTANCIA Y TIEMPO OBJETIVO
 # ==========================================
 elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
-  st.header("Calculadora Biomecánica de Ritmos por Tramos")
+  st.header("Calculadora Automática de Ritmo por Distancia y Tiempo Objetivo")
   st.markdown(
-      "Modelo avanzado que contempla la **fase de aceleración pendular inicial"
-      " (0-30m)** y la **tasa de fatiga/deceleración** en distancias"
-      " prolongadas."
+      "Selecciona la prueba base del atleta para ajustar los límites de"
+      " control y cálculo de parciales coherentes."
   )
 
   tipo_prueba = st.selectbox(
-      "Selecciona la Prueba de Referencia del Atleta:",
+      "Selecciona la Prueba de Referencia:",
       [
           "Atleta de 100m (Límite: 350m)",
           "Atleta de 200m (Límite: 500m)",
@@ -235,28 +232,28 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
         "Porcentaje de Intensidad (%)", 50, 120, 100, 5
     )
 
-  # Velocidad base neta
+  # Velocidad ajustada en base a la distancia y tiempo objetivo ingresados
   v_base = custom_dist / custom_time
   v_ajustada = v_base * (custom_intensidad / 100.0)
 
   st.markdown("---")
-  st.subheader("📊 Resultados del Modelo Biomecánico")
+  st.subheader("📊 Resultados del Cálculo Automático")
 
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Velocidad Media Global", f"{v_ajustada:.2f} m/s")
-  m2.metric("Tiempo Total Estimado", f"{custom_time * (100/custom_intensidad):.2f} s")
-  m3.metric("Ritmo Base (s/100m)", f"{(custom_time/custom_dist)*100:.2f} s")
+  m2.metric("Tiempo Total Ajustado", f"{custom_time / (custom_intensidad/100.0):.2f} s")
+  m3.metric("Ritmo Base (s/100m)", f"{(custom_time / custom_dist) * 100:.2f} s")
   sistema_auto, pausa_micro_auto, pausa_macro_auto = obtener_sistema_pausa(
       custom_dist
   )
   m4.metric("Sistema Energético", sistema_auto)
 
   st.info(
-      f"**Estrategia de Recuperación (Pausas):** Microciclo: **{pausa_micro_auto}**"
-      f" | Macrociclo: **{pausa_macro_auto}** (Garantiza resíntesis de PCr)."
+      f"**Recomendación de Pausas:** Pausa Microciclo: **{pausa_micro_auto}** |"
+      f" Pausa Macrociclo: **{pausa_macro_auto}**"
   )
 
-  st.subheader("Desglose de Parciales con Aceleración y Fatiga")
+  st.subheader("Desglose de Parciales Fraccionados (Progresivos y Coherentes)")
 
   if "100m" in tipo_prueba:
     pasos = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350]
@@ -311,23 +308,12 @@ elif menu == "⚡ Calculadora por Distancia y Tiempo Objetivo":
   desglose = []
   for p in pasos:
     if p <= custom_dist:
-      # Modelado no lineal de parciales
-      if p <= 30:
-        factor_acel = 1.25 - (p / 120.0)
-        t_p = (p / v_ajustada) * factor_acel
-      elif p <= 100:
-        t_p = (p / v_ajustada) * 1.03
-      else:
-        if especialidad_tipo == "100m":
-          f_fatiga = 1.0 + (p / 2000.0)
-        elif especialidad_tipo == "200m":
-          f_fatiga = 1.0 + (p / 1600.0)
-        else:
-          f_fatiga = 1.0 + (p / 1100.0)
-        t_p = (p / v_ajustada) * f_fatiga
-
+      # Cálculo proporcional y acumulativo exacto basado en la velocidad global
       if p == custom_dist:
-        t_p = custom_time
+        t_p = custom_time / (custom_intensidad / 100.0)
+      else:
+        # Interpolación proporcional estricta para mantener curva ascendente coherente
+        t_p = (custom_time / (custom_intensidad / 100.0)) * (p / custom_dist)
 
       vel_tramo = p / t_p if t_p > 0 else 0
       desglose.append({
@@ -516,7 +502,7 @@ elif menu == "✏️ Editar o Eliminar Atletas":
             ) as writer:
               df_atletas.to_excel(
                   writer, sheet_name="Registro Atletas", index=False
-                )
+              )
             st.success(f"¡Atleta '{nuevo_nombre}' actualizado correctamente!")
             st.rerun()
           except Exception as e:
